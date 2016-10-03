@@ -1,0 +1,172 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import urllib, urllib2
+import sys, os, re, random
+import getpass
+
+def getPassword():
+	global username, password
+	if os.path.exists(sys.path[0] + '/.authorization'):
+		try:
+			f = open(sys.path[0] + '/.authorization','r')
+			auth = f.read().splitlines()
+			username = auth[0]
+			password = auth[1]
+		finally:
+			if f:
+				f.close()
+	else:
+		username = raw_input('Username: ')
+		password = getpass.getpass('Password: ')
+
+		URL = 'https://www.cs.ise.shibaura-it.ac.jp/pn2/16/student/submit.html'
+		realm = 'pn2-16'
+		authhandler = urllib2.HTTPDigestAuthHandler()
+		authhandler.add_password(realm, URL, username, password)
+		opener = urllib2.build_opener(authhandler)
+		urllib2.install_opener(opener)
+		try:
+			response = urllib2.urlopen(URL)
+			html = response.read()
+		except:
+			print('Wrong username or password')
+			sys.exit()
+
+		try:
+			f = open(sys.path[0] + '/.authorization','w')
+			f.write(username + '\n' + password)
+		finally:
+			if f:
+				f.close()
+	return
+
+version = "1.0"
+usage = """usage:  submit  [--version] [--help]
+  status          Check status
+  post <file>     Upload assignment
+                  Filename should be formed as
+                  <kihon or hatten><week number>-<question number>.c
+                  (ex. kihon1-2.c hatten2-1.c)"""
+
+if len(sys.argv) < 2:
+	print(usage)
+
+elif sys.argv[1] == '--help':
+	print(usage)
+
+elif sys.argv[1] == '--version':
+	print("version " + version)
+
+elif sys.argv[1] == 'status':
+	getPassword()
+	URL = 'https://www.cs.ise.shibaura-it.ac.jp/pn2/16/student/status.cgi'
+	realm = 'pn2-16'
+	authhandler = urllib2.HTTPDigestAuthHandler()
+	authhandler.add_password(realm, URL, username, password)
+	opener = urllib2.build_opener(authhandler)
+	urllib2.install_opener(opener)
+	try:
+		response = urllib2.urlopen(URL)
+		html = response.read()
+	except:
+		print("Failed to access server")
+		sys.exit()
+
+	table = re.findall(r'<tr><td>(.*?)</td><td>(.*?)</td><td>.*?</td>', html)
+	print('学籍番号: %s\n' % username)
+	print(table[0][0] + '\t' + table[0][1])
+	print('---------------------------')
+	max = len(table)
+	i = 1
+	while i < max:
+		print(table[i][0] + '\t' + table[i][1])
+		i += 1
+	print('\r')
+
+elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
+	path = sys.argv[2]
+	getPassword()
+	try:
+		f = open(path, 'r')
+	except:
+		print("No such file: '%s'" % path)
+		sys.exit()
+	try:
+		content = f.read()
+	except:
+		print("Failed to read file: '%s'" % path)
+		sys.exit()
+	finally:
+		f.close()
+
+	if not '/' in path:
+		fileName = path		
+		path = './' + path
+	else:
+		fileName = path.split('/')[-1]
+
+	if re.match(r'kihon|hatten\d{1,2}-\d\..+', fileName):
+		info = re.findall(r'(kihon|hatten)(\d{1,2})-(\d)\..+', fileName)
+		if info[0][0] == 'kihon':
+			kihon_hatten = 1
+		elif info[0][0] == 'hatten':
+			kihon_hatten = 2
+		kai = info[0][1]
+		bangou = info[0][2]
+	else:
+		print("Illegal file name: '%s'" % fileName)
+
+	chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+	boundary = '----WebKitFormBoundary' + ''.join(random.choice(chars) for _ in range(16))
+	data = []
+	data.append('--%s' % boundary)
+	data.append('Content-Disposition: form-data; name="kai"\r\n')
+	data.append(str(kai))
+	data.append('--%s' % boundary)
+	data.append('Content-Disposition: form-data; name="kihon-hatten"\r\n')
+	data.append(str(kihon_hatten))
+	data.append('--%s' % boundary)
+	data.append('Content-Disposition: form-data; name="bangou"\r\n')
+	data.append(str(bangou))
+	data.append('--%s' % boundary)
+	data.append('Content-Disposition: form-data; name="program"; filename="hatten2-1.c"')
+	data.append('Content-Type: application/octet-stream\r\n')
+	data.append(content)
+	data.append('--%s--\r\n' % boundary)
+	httpBody = '\r\n'.join(data)
+	length = len(httpBody)
+
+	URL = 'https://www.cs.ise.shibaura-it.ac.jp/pn2/16/student/submit.cgi'
+	request = urllib2.Request(URL, data = httpBody)
+	request.add_header('User-Agent', 'Mozilla/5.0')
+	request.add_header('Referer', 'https://www.cs.ise.shibaura-it.ac.jp/pn2/16/student/submit.html')
+	request.add_header('Content-Type', 'multipart/form-data; boundary=%s' % boundary )
+	request.add_header('Content-Length', str(length))
+
+	realm = 'pn2-16'
+	authhandler = urllib2.HTTPDigestAuthHandler()
+	authhandler.add_password(realm, URL, username, password)
+	opener = urllib2.build_opener(authhandler)
+	urllib2.install_opener(opener)
+
+	try:
+		response = urllib2.urlopen(request)
+		html = response.read()
+	except:
+		print("Failed to access server")
+		sys.exit()
+
+	if '課題が提出されました' in html:
+		exit()
+	elif 'この課題のファイルは提出済み' in html:
+		print("File already exit: '%s'" % fileName)
+	else:
+		print("Failed to post file: '%s'" % fileName)
+
+else:
+	print("Unknow option: '%s'" % sys.argv[1])
+	print(usage)
+
+
+
