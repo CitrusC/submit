@@ -1,11 +1,14 @@
 #Submit
-A command line tool to submit assignments. Made for SHIBAURA-IT Introduction to Programming course.
+A command line tool to submit assignments. For SHIBAURA-IT Introduction to Programming course.
 
 ##Install
-`$ chmod a+x ~/submit/submit`  
-`$ echo 'set path=($path ~/submit)' >> ~/.cshrc`  
-`$ source ~/.cshrc`  
-
+`$ wget https://github.com/CitrusC/submit/archive/v1.0.tar.gz`  
+`$ tar -zxvf v1.0`  
+`$ chmod a+x ./submit-1.0/submit`  
+`$ echo 'set path=($path ~/submit-1.0)' >> ~/.cshrc`  
+`$ source ~/.cshrc`
+  
+If not download to the ~/ directory, change `($path ~/submit-1.0)` to the right path.  
 ##Usage
 ###Upload assignment:
 `$ submit post <file>`  
