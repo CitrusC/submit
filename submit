@@ -41,13 +41,14 @@ def getPassword():
 				f.close()
 	return
 
-version = "1.0"
+version = "1.1"
 usage = """usage:  submit  [--version] [--help]
   status          Check status
   post <file>     Upload assignment
                   Filename should be formed as
                   <kihon or hatten><week number>-<question number>.c
-                  (ex. kihon1-2.c hatten2-1.c)"""
+                  (ex. kihon1-2.c hatten2-1.c)
+  reset           Remove saved password"""
 
 if len(sys.argv) < 2:
 	print(usage)
@@ -84,6 +85,10 @@ elif sys.argv[1] == 'status':
 		i += 1
 	print('\r')
 
+elif sys.argv[1] == 'reset':
+	if os.path.exists(sys.path[0] + '/.authorization'):
+		os.remove(sys.path[0] + '/.authorization')
+
 elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
 	path = sys.argv[2]
 	getPassword()
@@ -101,13 +106,13 @@ elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
 		f.close()
 
 	if not '/' in path:
-		fileName = path		
+		fileName = path
 		path = './' + path
 	else:
 		fileName = path.split('/')[-1]
 
-	if re.match(r'kihon|hatten\d{1,2}-\d\..+', fileName):
-		info = re.findall(r'(kihon|hatten)(\d{1,2})-(\d)\..+', fileName)
+	if re.match(r'kihon|hatten\d{1,2}-\d(?:_.+?|)\..+', fileName):
+		info = re.findall(r'(kihon|hatten)(\d{1,2})-(\d)(?:_.+?|)\..+', fileName)
 		if info[0][0] == 'kihon':
 			kihon_hatten = 1
 		elif info[0][0] == 'hatten':
@@ -167,6 +172,3 @@ elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
 else:
 	print("Unknow option: '%s'" % sys.argv[1])
 	print(usage)
-
-
-
