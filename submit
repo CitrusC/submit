@@ -165,7 +165,7 @@ elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
 	if '課題が提出されました' in html:
 		exit()
 	elif 'この課題のファイルは提出済み' in html:
-		print("File already exit: '%s'" % fileName)
+		print("File already exists: '%s'" % fileName)
 	else:
 		print("Failed to post file: '%s'" % fileName)
 
