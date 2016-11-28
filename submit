@@ -41,7 +41,7 @@ def getPassword():
 				f.close()
 	return
 
-version = "1.1"
+version = "1.2"
 usage = """usage:  submit  [--version] [--help]
   status          Check status
   post <file>     Upload assignment
@@ -75,12 +75,25 @@ elif sys.argv[1] == 'status':
 		sys.exit()
 
 	table = re.findall(r'<tr><td>(.*?)</td><td>(.*?)</td><td>.*?</td>', html)
+	table.pop(0)
+	i = 0
+	while i < len(table):
+		table[i] = list(table[i])
+	 	m = re.match(r'第(\d+)回(基本|発展)(\d+)', table[i][0])
+	 	table[i].append(int(m.group(1)))
+		if m.group(2) == '基本':
+			table[i].append(0)
+		else:
+			table[i].append(1)
+	 	table[i].append(int(m.group(3)))
+		i += 1
+	table.sort(key=lambda x: (x[2], x[3], x[4]))
+
 	print('学籍番号: %s\n' % username)
-	print(table[0][0] + '\t' + table[0][1])
+	print('課題番号\tstatus')
 	print('---------------------------')
-	max = len(table)
-	i = 1
-	while i < max:
+	i = 0
+	while i < len(table):
 		print(table[i][0] + '\t' + table[i][1])
 		i += 1
 	print('\r')
@@ -121,6 +134,7 @@ elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
 		bangou = info[0][2]
 	else:
 		print("Illegal file name: '%s'" % fileName)
+		sys.exit()
 
 	chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 	boundary = '----WebKitFormBoundary' + ''.join(random.choice(chars) for _ in range(16))
@@ -163,7 +177,7 @@ elif sys.argv[1] == 'post' and len(sys.argv) >= 3:
 		sys.exit()
 
 	if '課題が提出されました' in html:
-		exit()
+		pass
 	elif 'この課題のファイルは提出済み' in html:
 		print("File already exists: '%s'" % fileName)
 	else:
